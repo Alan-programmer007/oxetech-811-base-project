@@ -101,7 +101,6 @@ function enrichTickets(tickets: Ticket[], database: Database) {
   });
 }
 
-
 router.get("/tickets", (request, response) => {
   const database = readDatabase();
   let tickets = filterTickets(database.tickets, request.query);
@@ -111,26 +110,26 @@ router.get("/tickets", (request, response) => {
 });
 
 
+function getTicketsSummary(tickets: Ticket[]) {
+  return tickets.reduce(
+    (summary, ticket) => {
+      if (ticket.status === "open") summary.open++;
+      if (ticket.status === "in_progress") summary.in_progress++;
+      if (ticket.status === "resolved") summary.resolved++;
+      if (ticket.status === "closed") summary.closed++;
+      if (ticket.priority === "urgent") summary.urgent++;
+      return summary;
+    },
+    { open: 0, in_progress: 0, resolved: 0, closed: 0, urgent: 0 }
+  );
+}
+
 router.get("/tickets/summary", (_request, response) => {
   const database = readDatabase();
-  const summary = {
-    open: 0,
-    in_progress: 0,
-    resolved: 0,
-    closed: 0,
-    urgent: 0,
-  };
-
-  for (const ticket of database.tickets) {
-    if (ticket.status === "open") summary.open++;
-    if (ticket.status === "in_progress") summary.in_progress++;
-    if (ticket.status === "resolved") summary.resolved++;
-    if (ticket.status === "closed") summary.closed++;
-    if (ticket.priority === "urgent") summary.urgent++;
-  }
-
+  const summary = getTicketsSummary(database.tickets);
   response.json(summary);
 });
+
 
 router.get("/tickets/:id", (request, response) => {
   const database = readDatabase();
