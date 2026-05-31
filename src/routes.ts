@@ -191,41 +191,62 @@ router.post("/tickets", (request, response) => {
   response.status(201).json(ticket);
 });
 
-router.patch("/tickets/:id/status", (request, response) => {
-  const database = readDatabase();
-  const ticket = database.tickets.find((item) => item.id === request.params.id);
-  const newStatus = request.body.status as TicketStatus;
+function updateTicketStatus(
 
-  if (!ticket) {
-    response.status(404).json({ message: "Ticket nao encontrado" });
-    return;
-  }
+  database: Database,
+  ticketId: string,
+  newStatus: TicketStatus,
+  authorId?: string,
+  comment?: string
+  ): Ticket {
+  const ticket = database.tickets.find(item => item.id === ticketId);
+  if (!ticket) throw new Error("NOT_FOUND");
 
-  if (!["open", "in_progress", "resolved", "closed"].includes(newStatus)) {
-    response.status(400).json({ message: "Status invalido", allowed: ["open", "in_progress", "resolved", "closed"] });
-    return;
-  }
+  const allowedStatuses: TicketStatus[] = ["open", "in_progress", "resolved", "closed"];
+  if (!allowedStatuses.includes(newStatus)) throw new Error("INVALID_STATUS");
 
-  if (newStatus === "closed" && !request.body.comment) {
-    response.status(400).json({ message: "Informe um comentario para fechar o chamado" });
-    return;
-  }
+  if (newStatus === "closed" && !comment) throw new Error("COMMENT_REQUIRED");
 
   ticket.status = newStatus;
   ticket.updatedAt = new Date().toISOString();
 
-  if (request.body.comment) {
-    database.comments.push({
-      id: generateId("comment"),
-      ticketId: ticket.id,
-      authorId: request.body.authorId || ticket.requesterId,
-      message: request.body.comment,
-      createdAt: new Date().toISOString(),
-    });
+  if (comment) {
+  database.comments.push({
+    id: generateId("comment"),
+    ticketId: ticket.id,
+    authorId: authorId || ticket.requesterId,
+    message: comment,
+    createdAt: new Date().toISOString(),
+  });
   }
 
   writeDatabase(database);
-  response.json(ticket);
+  return ticket;
+}
+
+router.patch("/tickets/:id/status", (request, response) => {
+  const database = readDatabase();
+
+  try {
+    const ticket = updateTicketStatus(
+      database,
+      request.params.id,
+      request.body.status as TicketStatus,
+      request.body.authorId,
+      request.body.comment
+    );
+    response.json(ticket);
+  } catch (error: any) {
+    if (error.message === "NOT_FOUND") {
+      response.status(404).json({ message: "Ticket não encontrado" });
+    } else if (error.message === "INVALID_STATUS") {
+      response.status(400).json({ message: "Status inválido" });
+    } else if (error.message === "COMMENT_REQUIRED") {
+      response.status(400).json({ message: "Informe um comentário para fechar o chamado" });
+    } else {
+      response.status(500).json({ message: "Erro interno" });
+    }
+  }
 });
 
 router.post("/tickets/:id/comments", (request, response) => {
