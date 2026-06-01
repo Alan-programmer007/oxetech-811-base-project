@@ -58,6 +58,42 @@
       "assignedToId": "user_bruno",
       "createdAt": "2026-05-03T14:20:00.000Z",
       "updatedAt": "2026-05-04T09:00:00.000Z"
+    },
+    {
+      "id": "ticket_1780323754016_58",
+      "title": "Meu título",
+      "description": "body.description",
+      "category": "body.category",
+      "status": "open",
+      "priority": "low",
+      "requesterId": "user_ana",
+      "assignedToId": "user_ana",
+      "createdAt": "2026-06-01T14:22:34.016Z",
+      "updatedAt": "2026-06-01T14:22:34.016Z"
+    },
+    {
+      "id": "ticket_1780323806838_4820",
+      "title": "Meu título",
+      "description": "body.description",
+      "category": "body.category",
+      "status": "open",
+      "priority": "low",
+      "requesterId": "user_ana",
+      "assignedToId": "user_ana",
+      "createdAt": "2026-06-01T14:23:26.837Z",
+      "updatedAt": "2026-06-01T14:23:26.837Z"
+    },
+    {
+      "id": "ticket_1780323845962_9194",
+      "title": "Meu título",
+      "description": "body.description",
+      "category": "body.category",
+      "status": "open",
+      "priority": "low",
+      "requesterId": "user_ana",
+      "assignedToId": "user_ana",
+      "createdAt": "2026-06-01T14:24:05.961Z",
+      "updatedAt": "2026-06-01T14:24:05.961Z"
     }
   ],
   "comments": [

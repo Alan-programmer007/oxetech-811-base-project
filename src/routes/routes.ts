@@ -1,13 +1,10 @@
 import { Router } from "express";
-import fs from "node:fs";
-import path from "node:path";
-import type { Database } from "../types/types";
-import { Ticket, TicketPriority, TicketStatus } from "../core/Ticket";
+import { dispatcher } from "../server";
+import { TicketStatus } from "../core/Ticket";
 import { TicketFactory } from "../core/TicketFactory";
 import { DatabaseManager } from "../repositories/DatabaseManager";
 
 const router = Router();
-
 
 function generateId(prefix: string) {
   return `${prefix}_${Date.now()}_${Math.floor(Math.random() * 10000)}`;
@@ -136,6 +133,8 @@ router.post("/tickets", (request, response) => {
 
   database.tickets.push(ticket);
   DatabaseManager.getInstance().saveDatabase(database);
+
+  dispatcher.emit("ticket.created", ticket);
 
   response.status(201).json(ticket);
 });
