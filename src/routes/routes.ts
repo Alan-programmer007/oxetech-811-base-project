@@ -1,39 +1,16 @@
 import { Router } from "express";
 import fs from "node:fs";
 import path from "node:path";
-import type { Database, Ticket, TicketPriority, TicketStatus } from "./types";
+import type { Database } from "../types/types";
+import { Ticket, TicketPriority, TicketStatus } from "../core/Ticket";
+import { TicketFactory } from "../core/TicketFactory";
+import { DatabaseManager } from "../repositories/DatabaseManager";
 
 const router = Router();
-const dataFile = process.env.DATA_FILE || "data/db.json";
-const databasePath = path.resolve(process.cwd(), dataFile);
 
-function readDatabase(): Database {
-  const content = fs.readFileSync(databasePath, "utf-8");
-  return JSON.parse(content) as Database;
-}
-
-function writeDatabase(database: Database) {
-  fs.writeFileSync(databasePath, JSON.stringify(database, null, 2));
-}
 
 function generateId(prefix: string) {
   return `${prefix}_${Date.now()}_${Math.floor(Math.random() * 10000)}`;
-}
-
-function calculatePriority(category: string, description: string): TicketPriority {
-  if (category === "infra" || description.toLowerCase().includes("urgente")) {
-    return "urgent";
-  }
-
-  if (category === "sistemas" || description.length > 220) {
-    return "high";
-  }
-
-  if (category === "academico") {
-    return "medium";
-  }
-
-  return "low";
 }
 
 router.get("/health", (_request, response) => {
@@ -41,13 +18,13 @@ router.get("/health", (_request, response) => {
 });
 
 router.get("/users", (_request, response) => {
-  const database = readDatabase();
+  const database = DatabaseManager.getInstance().getDatabase();
 
   response.json(database.users);
 });
 
 router.get("/tickets", (request, response) => {
-  const database = readDatabase();
+  const database = DatabaseManager.getInstance().getDatabase();
   let tickets = database.tickets;
 
   if (request.query.status) {
@@ -85,7 +62,7 @@ router.get("/tickets", (request, response) => {
 });
 
 router.get("/tickets/summary", (_request, response) => {
-  const database = readDatabase();
+  const database = DatabaseManager.getInstance().getDatabase();
   const summary = {
     open: 0,
     in_progress: 0,
@@ -106,7 +83,7 @@ router.get("/tickets/summary", (_request, response) => {
 });
 
 router.get("/tickets/:id", (request, response) => {
-  const database = readDatabase();
+  const database = DatabaseManager.getInstance().getDatabase();
   const ticket = database.tickets.find((item) => item.id === request.params.id);
 
   if (!ticket) {
@@ -127,7 +104,7 @@ router.get("/tickets/:id", (request, response) => {
 });
 
 router.post("/tickets", (request, response) => {
-  const database = readDatabase();
+  const database = DatabaseManager.getInstance().getDatabase();
   const body = request.body;
 
   if (!body.title || !body.description || !body.category || !body.requesterId) {
@@ -146,27 +123,25 @@ router.post("/tickets", (request, response) => {
   }
 
   const now = new Date().toISOString();
-  const ticket: Ticket = {
-    id: generateId("ticket"),
+  const ticket = TicketFactory.create({
     title: body.title,
     description: body.description,
     category: body.category,
     requesterId: body.requesterId,
     assignedToId: body.assignedToId,
     status: "open",
-    priority: calculatePriority(body.category, body.description),
     createdAt: now,
     updatedAt: now,
-  };
+  });
 
   database.tickets.push(ticket);
-  writeDatabase(database);
+  DatabaseManager.getInstance().saveDatabase(database);
 
   response.status(201).json(ticket);
 });
 
 router.patch("/tickets/:id/status", (request, response) => {
-  const database = readDatabase();
+  const database = DatabaseManager.getInstance().getDatabase();
   const ticket = database.tickets.find((item) => item.id === request.params.id);
   const newStatus = request.body.status as TicketStatus;
 
@@ -198,12 +173,12 @@ router.patch("/tickets/:id/status", (request, response) => {
     });
   }
 
-  writeDatabase(database);
+  DatabaseManager.getInstance().saveDatabase(database);
   response.json(ticket);
 });
 
 router.post("/tickets/:id/comments", (request, response) => {
-  const database = readDatabase();
+  const database = DatabaseManager.getInstance().getDatabase();
   const ticket = database.tickets.find((item) => item.id === request.params.id);
   const body = request.body;
 
@@ -227,7 +202,7 @@ router.post("/tickets/:id/comments", (request, response) => {
 
   database.comments.push(comment);
   ticket.updatedAt = new Date().toISOString();
-  writeDatabase(database);
+  DatabaseManager.getInstance().saveDatabase(database);
 
   response.status(201).json(comment);
 });
