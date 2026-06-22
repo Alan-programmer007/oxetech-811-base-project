@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { dispatcher } from "../server";
+import { dispatcher } from "../app";
 import { TicketStatus } from "../core/Ticket";
 import { TicketFactory } from "../core/TicketFactory";
 import { DatabaseManager } from "../repositories/DatabaseManager";
