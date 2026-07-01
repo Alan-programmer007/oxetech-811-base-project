@@ -1,27 +1,53 @@
+import EventEmitter from "events";
 import cors from "cors";
-import express from "express";
-import router from "./routes/routes";
-import { dispatcher } from "./events/dispatcher";
-import { EmailService } from "./services/email/EmailService";
+import express, { type Express } from "express";
+import { HealthController } from "./controllers/HealthController";
+import { TicketController } from "./controllers/TicketController";
+import { UserController } from "./controllers/UserController";
+import type { CommentRepository } from "./core/repositories/CommentRepository";
+import type { TicketRepository } from "./core/repositories/TicketRepository";
+import type { UserRepository } from "./core/repositories/UserRepository";
+import { createRouter } from "./routes/routes";
+import type { Mailer } from "./services/email/EmailService";
 
-const emailService = new EmailService();
+export interface AppDependencies {
+  userRepository: UserRepository;
+  ticketRepository: TicketRepository;
+  commentRepository: CommentRepository;
+  emailService: Mailer;
+}
 
-dispatcher.on("ticket.created", (ticket) => {
-  emailService.sendEmail("admin@oxetech.com", "Novo Ticket Criado", `Um novo ticket foi criado: ${ticket.title}`);
-});
+export function createApp(deps: AppDependencies): Express {
+  const dispatcher = new EventEmitter();
 
-dispatcher.on("ticket.created", (ticket) => {
-  console.info(`Evento recebido: ticket.created - ${ticket.title}`);
-});
+  dispatcher.on("ticket.created", (ticket) => {
+    deps.emailService
+      .sendEmail("admin@oxetech.com", "Novo Ticket Criado", `Um novo ticket foi criado: ${ticket.title}`)
+      .catch((error) => console.error("Falha ao enviar email:", error));
+  });
 
-const app = express();
+  dispatcher.on("ticket.created", (ticket) => {
+    console.info(`Evento recebido: ticket.created - ${ticket.title}`);
+  });
 
-app.use(cors());
-app.use(express.json());
-app.use("/api", router);
+  const healthController = new HealthController();
+  const userController = new UserController(deps.userRepository);
+  const ticketController = new TicketController(
+    deps.ticketRepository,
+    deps.userRepository,
+    deps.commentRepository,
+    dispatcher,
+  );
 
-app.use((_request, response) => {
-  response.status(404).json({ message: "Rota nao encontrada" });
-});
+  const app = express();
 
-export { app, dispatcher };
+  app.use(cors());
+  app.use(express.json());
+  app.use("/api", createRouter({ healthController, userController, ticketController }));
+
+  app.use((_request, response) => {
+    response.status(404).json({ message: "Rota nao encontrada" });
+  });
+
+  return app;
+}

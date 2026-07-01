@@ -18,8 +18,8 @@ export class TicketController {
     private readonly dispatcher: EventEmitter,
   ) {}
 
-  list = (request: Request, response: Response) => {
-    let tickets = this.tickets.findAll();
+  list = async (request: Request, response: Response) => {
+    let tickets = await this.tickets.findAll();
 
     if (request.query.status) {
       tickets = tickets.filter((ticket) => ticket.status === request.query.status);
@@ -39,23 +39,25 @@ export class TicketController {
       );
     }
 
-    const result = tickets.map((ticket) => {
-      const requester = this.users.findById(ticket.requesterId);
-      const assigned = ticket.assignedToId ? this.users.findById(ticket.assignedToId) : undefined;
-      const comments = this.comments.findByTicketId(ticket.id);
+    const result = await Promise.all(
+      tickets.map(async (ticket) => {
+        const requester = await this.users.findById(ticket.requesterId);
+        const assigned = ticket.assignedToId ? await this.users.findById(ticket.assignedToId) : undefined;
+        const comments = await this.comments.findByTicketId(ticket.id);
 
-      return {
-        ...ticket,
-        requester,
-        assigned,
-        commentsCount: comments.length,
-      };
-    });
+        return {
+          ...ticket,
+          requester,
+          assigned,
+          commentsCount: comments.length,
+        };
+      }),
+    );
 
     response.json(result);
   };
 
-  summary = (_request: Request, response: Response) => {
+  summary = async (_request: Request, response: Response) => {
     const summary = {
       open: 0,
       in_progress: 0,
@@ -64,7 +66,7 @@ export class TicketController {
       urgent: 0,
     };
 
-    for (const ticket of this.tickets.findAll()) {
+    for (const ticket of await this.tickets.findAll()) {
       if (ticket.status === "open") summary.open++;
       if (ticket.status === "in_progress") summary.in_progress++;
       if (ticket.status === "resolved") summary.resolved++;
@@ -75,25 +77,28 @@ export class TicketController {
     response.json(summary);
   };
 
-  getById = (request: Request, response: Response) => {
-    const ticket = this.tickets.findById(String(request.params.id));
+  getById = async (request: Request, response: Response) => {
+    const ticket = await this.tickets.findById(String(request.params.id));
 
     if (!ticket) {
       response.status(404).json({ error: "Ticket nao encontrado", id: request.params.id });
       return;
     }
 
-    const requester = this.users.findById(ticket.requesterId);
-    const assigned = ticket.assignedToId ? this.users.findById(ticket.assignedToId) : undefined;
-    const comments = this.comments.findByTicketId(ticket.id).map((comment) => ({
-      ...comment,
-      author: this.users.findById(comment.authorId),
-    }));
+    const requester = await this.users.findById(ticket.requesterId);
+    const assigned = ticket.assignedToId ? await this.users.findById(ticket.assignedToId) : undefined;
+    const rawComments = await this.comments.findByTicketId(ticket.id);
+    const comments = await Promise.all(
+      rawComments.map(async (comment) => ({
+        ...comment,
+        author: await this.users.findById(comment.authorId),
+      })),
+    );
 
     response.json({ ...ticket, requester, assigned, comments });
   };
 
-  create = (request: Request, response: Response) => {
+  create = async (request: Request, response: Response) => {
     const body = request.body;
 
     if (!body.title || !body.description || !body.category || !body.requesterId) {
@@ -105,7 +110,7 @@ export class TicketController {
       return;
     }
 
-    const user = this.users.findById(body.requesterId);
+    const user = await this.users.findById(body.requesterId);
     if (!user) {
       response.status(400).json({ message: "Solicitante invalido" });
       return;
@@ -123,15 +128,15 @@ export class TicketController {
       updatedAt: now,
     });
 
-    this.tickets.add(ticket);
+    await this.tickets.add(ticket);
 
     this.dispatcher.emit("ticket.created", ticket);
 
     response.status(201).json(ticket);
   };
 
-  updateStatus = (request: Request, response: Response) => {
-    const ticket = this.tickets.findById(String(request.params.id));
+  updateStatus = async (request: Request, response: Response) => {
+    const ticket = await this.tickets.findById(String(request.params.id));
     const newStatus = request.body.status as TicketStatus;
 
     if (!ticket) {
@@ -153,7 +158,7 @@ export class TicketController {
     ticket.updatedAt = new Date().toISOString();
 
     if (request.body.comment) {
-      this.comments.add({
+      await this.comments.add({
         id: generateId("comment"),
         ticketId: ticket.id,
         authorId: request.body.authorId || ticket.requesterId,
@@ -162,12 +167,12 @@ export class TicketController {
       });
     }
 
-    this.tickets.update(ticket);
+    await this.tickets.update(ticket);
     response.json(ticket);
   };
 
-  addComment = (request: Request, response: Response) => {
-    const ticket = this.tickets.findById(String(request.params.id));
+  addComment = async (request: Request, response: Response) => {
+    const ticket = await this.tickets.findById(String(request.params.id));
     const body = request.body;
 
     if (!ticket) {
@@ -188,9 +193,9 @@ export class TicketController {
       createdAt: new Date().toISOString(),
     };
 
-    this.comments.add(comment);
+    await this.comments.add(comment);
     ticket.updatedAt = new Date().toISOString();
-    this.tickets.update(ticket);
+    await this.tickets.update(ticket);
 
     response.status(201).json(comment);
   };

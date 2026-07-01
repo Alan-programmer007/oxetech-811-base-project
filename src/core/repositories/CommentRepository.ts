@@ -1,6 +1,6 @@
 import { TicketComment } from "../../types/types";
 
 export interface CommentRepository {
-  findByTicketId(ticketId: string): TicketComment[];
-  add(comment: TicketComment): void;
+  findByTicketId(ticketId: string): Promise<TicketComment[]>;
+  add(comment: TicketComment): Promise<void>;
 }

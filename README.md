@@ -8,6 +8,7 @@ O objetivo nao e reconstruir o sistema do zero. O objetivo e entender a aplicaca
 
 - Node.js 20 ou superior
 - npm
+- Docker e Docker Compose (para o PostgreSQL e o Mailpit)
 
 ## Como rodar
 
@@ -17,7 +18,25 @@ Instale as dependencias:
 npm install
 ```
 
-Reinicie os dados de exemplo, se necessario:
+Suba o PostgreSQL e o Mailpit (servidor de email de teste):
+
+```bash
+docker compose up -d
+```
+
+Copie o arquivo de ambiente. Os valores ja apontam para os containers do Docker:
+
+```bash
+cp .env.example .env
+```
+
+Crie o schema no banco e gere o Prisma Client:
+
+```bash
+npm run db:push
+```
+
+Popule os dados de exemplo:
 
 ```bash
 npm run seed
@@ -29,15 +48,20 @@ Execute em modo desenvolvimento:
 npm run dev
 ```
 
-A API ficara disponivel em `http://localhost:3000/api`.
+A API ficara disponivel em `http://localhost:3000/api`. Os emails enviados
+ao criar chamados podem ser inspecionados na interface web do Mailpit em
+`http://localhost:8025`.
 
 ## Scripts
 
 - `npm run dev`: executa a API em modo desenvolvimento.
-- `npm run seed`: recria o arquivo de dados inicial.
+- `npm run db:push`: aplica o schema do Prisma no banco (`prisma db push`).
+- `npm run prisma:migrate`: cria/aplica migrations versionadas (`prisma migrate dev`).
+- `npm run prisma:generate`: (re)gera o Prisma Client.
+- `npm run seed`: popula o banco com os dados de exemplo.
 - `npm run typecheck`: valida os tipos TypeScript.
-- `npm run build`: compila o projeto para `dist`.
-- `npm test`: placeholder inicial. Testes devem ser criados durante a evolucao.
+- `npm run build`: gera o Prisma Client e compila o projeto para `dist`.
+- `npm test`: executa os testes unitarios e de integracao.
 
 ## Endpoints principais
 

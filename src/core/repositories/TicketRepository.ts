@@ -1,8 +1,8 @@
 import { Ticket } from "../Ticket";
 
 export interface TicketRepository {
-  findAll(): Ticket[];
-  findById(id: string): Ticket | undefined;
-  add(ticket: Ticket): void;
-  update(ticket: Ticket): void;
+  findAll(): Promise<Ticket[]>;
+  findById(id: string): Promise<Ticket | undefined>;
+  add(ticket: Ticket): Promise<void>;
+  update(ticket: Ticket): Promise<void>;
 }
