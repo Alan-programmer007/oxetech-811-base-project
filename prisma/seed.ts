@@ -1,6 +1,12 @@
 import "dotenv/config";
 import { Prisma } from "@prisma/client";
 import { prisma } from "../src/services/db/prisma";
+import { hashPassword } from "../src/services/security/password";
+
+// Todos os usuarios usam a mesma senha. Como o hash e sem salt, todos os
+// registros terao exatamente o mesmo valor na coluna password.
+const PLAIN_PASSWORD = "123456";
+const HASHED_PASSWORD = hashPassword(PLAIN_PASSWORD);
 
 const users: Prisma.UserCreateManyInput[] = [
   {
@@ -8,21 +14,21 @@ const users: Prisma.UserCreateManyInput[] = [
     name: "Ana Beatriz",
     email: "ana.aluna@example.com",
     role: "student",
-    password: "123456",
+    password: HASHED_PASSWORD,
   },
   {
     id: "user_bruno",
     name: "Bruno Lima",
     email: "bruno.professor@example.com",
     role: "teacher",
-    password: "professor123",
+    password: HASHED_PASSWORD,
   },
   {
     id: "user_carla",
     name: "Carla Suporte",
     email: "carla.suporte@example.com",
     role: "support",
-    password: "suporte123",
+    password: HASHED_PASSWORD,
   },
 ];
 
@@ -104,8 +110,9 @@ async function main() {
   console.log("Banco de dados populado com sucesso.");
   console.log("\nCredenciais para login (POST /api/auth/login):");
   for (const user of users) {
-    console.log(`  ${user.email} / ${user.password} (${user.role})`);
+    console.log(`  ${user.email} / ${PLAIN_PASSWORD} (${user.role})`);
   }
+  console.log(`\nHash gravado no banco (igual para todos): ${HASHED_PASSWORD}`);
 }
 
 main()

@@ -6,6 +6,7 @@ import type { CommentRepository } from "../../core/repositories/CommentRepositor
 import type { TicketRepository } from "../../core/repositories/TicketRepository";
 import type { UserRepository } from "../../core/repositories/UserRepository";
 import type { Mailer } from "../../services/email/EmailService";
+import { hashPassword } from "../../services/security/password";
 import type { TicketComment, User } from "../../types/types";
 
 // Repositorios em memoria: os testes de integracao nao precisam de banco real.
@@ -44,8 +45,17 @@ class InMemoryCommentRepository implements CommentRepository {
   async findByTicketId(ticketId: string): Promise<TicketComment[]> {
     return this.comments.filter((comment) => comment.ticketId === ticketId);
   }
+  async findById(id: string): Promise<TicketComment | undefined> {
+    return this.comments.find((comment) => comment.id === id);
+  }
   async add(comment: TicketComment): Promise<void> {
     this.comments.push(comment);
+  }
+  async update(comment: TicketComment): Promise<void> {
+    const index = this.comments.findIndex((current) => current.id === comment.id);
+    if (index >= 0) {
+      this.comments[index] = comment;
+    }
   }
 }
 
@@ -62,7 +72,7 @@ function buildApp() {
       name: "Ana Beatriz",
       email: "ana.aluna@example.com",
       role: "student",
-      password: "123456",
+      password: hashPassword("123456"),
     },
   ];
 

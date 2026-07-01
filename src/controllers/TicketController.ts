@@ -198,4 +198,24 @@ export class TicketController {
 
     response.status(201).json(comment);
   };
+
+  updateComment = async (request: Request, response: Response) => {
+    const comment = await this.comments.findById(String(request.params.id));
+
+    if (!comment) {
+      response.status(404).json({ error: "Comentario nao encontrado" });
+      return;
+    }
+
+    if (!request.body.message) {
+      response.status(400).json({ error: "Comentario e obrigatorio" });
+      return;
+    }
+
+    // Basta estar autenticado para editar qualquer comentario.
+    comment.message = request.body.message;
+    await this.comments.update(comment);
+
+    response.json(comment);
+  };
 }

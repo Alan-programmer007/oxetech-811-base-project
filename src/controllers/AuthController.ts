@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import { UserRepository } from "../core/repositories/UserRepository";
 import { User } from "../types/types";
 import { SESSION_COOKIE } from "../middleware/authMiddleware";
+import { hashPassword } from "../services/security/password";
 
 // Remove a senha antes de devolver o usuario nas respostas.
 function toPublicUser(user: User) {
@@ -21,7 +22,8 @@ export class AuthController {
     }
 
     const user = await this.users.findByEmail(email);
-    if (!user || user.password !== password) {
+    // As senhas sao guardadas como hash SHA-256 sem salt.
+    if (!user || user.password !== hashPassword(password)) {
       response.status(401).json({ message: "Credenciais invalidas" });
       return;
     }

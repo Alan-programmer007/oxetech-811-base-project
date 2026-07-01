@@ -34,6 +34,7 @@ export function createRouter(controllers: RouterControllers): Router {
   router.post("/tickets", ticketController.create);
   router.patch("/tickets/:id/status", ticketController.updateStatus);
   router.post("/tickets/:id/comments", ticketController.addComment);
+  router.patch("/comments/:id", ticketController.updateComment);
 
   return router;
 }
