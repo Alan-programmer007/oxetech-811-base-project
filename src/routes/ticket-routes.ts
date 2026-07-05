@@ -17,16 +17,6 @@ function writeDatabase(database: Database) {
   fs.writeFileSync(databasePath, JSON.stringify(database, null, 2));
 }
 
-router.get("/health", (_request, response) => {
-  response.json({ status: "ok", service: "oxetech-helpdesk" });
-});
-
-router.get("/users", (_request, response) => {
-  const database = readDatabase();
-
-  response.json(database.users);
-});
-
 function filterTickets(tickets: Ticket[], query: any): Ticket[] {
   let result = tickets;
 
