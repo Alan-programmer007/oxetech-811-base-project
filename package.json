@@ -18,7 +18,8 @@
     "seed": "tsx prisma/seed.ts",
     "test": "jest",
     "test:unit": "jest src/core",
-    "test:integration": "jest src/routes"
+    "test:integration": "jest src/routes",
+    "test:coverage": "jest --coverage"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
