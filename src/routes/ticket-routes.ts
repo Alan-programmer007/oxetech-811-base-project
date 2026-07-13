@@ -2,7 +2,8 @@ import { Router } from "express";
 import fs from "node:fs";
 import path from "node:path";
 import type { Database, Ticket, TicketStatus } from "../types";
-import { calculatePriority, generateId, getTicketsSummary, updateTicketStatus } from "../service/ticket-service";
+import { generateId, calculatePriority } from "../utils/utils";
+import { getTicketsSummary, updateTicketStatus, enrichTickets, filterTickets} from "../service/ticket-service";
 
 const router = Router();
 const dataFile = process.env.DATA_FILE || "data/db.json";
@@ -17,43 +18,6 @@ function writeDatabase(database: Database) {
   fs.writeFileSync(databasePath, JSON.stringify(database, null, 2));
 }
 
-function filterTickets(tickets: Ticket[], query: any): Ticket[] {
-  let result = tickets;
-
-  if (query.status) {
-    result = result.filter(ticket => ticket.status === query.status);
-  }
-
-  if (query.category) {
-    result = result.filter(ticket => ticket.category === query.category);
-  }
-
-  if (query.search) {
-    const search = String(query.search).toLowerCase();
-    result = result.filter(ticket =>
-      ticket.title.toLowerCase().includes(search) ||
-      ticket.description.toLowerCase().includes(search) ||
-      ticket.category.toLowerCase().includes(search)
-    );
-  }
-
-  return result;
-}
-
-function enrichTickets(tickets: Ticket[], database: Database) {
-  return tickets.map(ticket => {
-    const requester = database.users.find(user => user.id === ticket.requesterId);
-    const assigned = database.users.find(user => user.id === ticket.assignedToId);
-    const comments = database.comments.filter(comment => comment.ticketId === ticket.id);
-
-    return {
-      ...ticket,
-      requester,
-      assigned,
-      commentsCount: comments.length,
-    };
-  });
-}
 
 router.get("/tickets", (request, response) => {
   const database = readDatabase();

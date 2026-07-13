@@ -1,5 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
+import { generateId} from "../utils/utils";
 import type { Database, Ticket, TicketStatus } from "../types";
 
 const dataFile = process.env.DATA_FILE || "data/db.json";
@@ -9,41 +10,42 @@ function writeDatabase(database: Database) {
   fs.writeFileSync(databasePath, JSON.stringify(database, null, 2));
 }
 
-export function generateId(prefix: string) {
-  return `${prefix}_${Date.now()}_${Math.floor(Math.random() * 10000)}`;
-}
+export function filterTickets(tickets: Ticket[], query: any): Ticket[] {
+  let result = tickets;
 
-enum Category {
-  Infra = "infra",
-  Sistemas = "sistemas",
-  Academico = "academico",
-}
-
-enum TicketPriority {
-  Urgent = "urgent",
-  High = "high",
-  Medium = "medium",
-  Low = "low",
-}
-
-enum Description {
-  DESCRIPTION_LENGTH_THRESHOLD = 220
-}
-
-export function calculatePriority(category: Category, description: string): TicketPriority {
-  if (category === Category.Infra || description.toLowerCase().includes("urgente")) {
-    return TicketPriority.Urgent;
+  if (query.status) {
+    result = result.filter(ticket => ticket.status === query.status);
   }
 
-  if (category === Category.Sistemas || description.length > Description.DESCRIPTION_LENGTH_THRESHOLD) {
-    return TicketPriority.High;
+  if (query.category) {
+    result = result.filter(ticket => ticket.category === query.category);
   }
 
-  if (category === Category.Academico) {
-    return TicketPriority.Medium;
+  if (query.search) {
+    const search = String(query.search).toLowerCase();
+    result = result.filter(ticket =>
+      ticket.title.toLowerCase().includes(search) ||
+      ticket.description.toLowerCase().includes(search) ||
+      ticket.category.toLowerCase().includes(search)
+    );
   }
 
-  return TicketPriority.Low;
+  return result;
+}
+
+export function enrichTickets(tickets: Ticket[], database: Database) {
+  return tickets.map(ticket => {
+    const requester = database.users.find(user => user.id === ticket.requesterId);
+    const assigned = database.users.find(user => user.id === ticket.assignedToId);
+    const comments = database.comments.filter(comment => comment.ticketId === ticket.id);
+
+    return {
+      ...ticket,
+      requester,
+      assigned,
+      commentsCount: comments.length,
+    };
+  });
 }
 
 export function getTicketsSummary(tickets: Ticket[]) {
