@@ -1,19 +1,19 @@
-import cors from "cors";
-import express from "express";
 import "dotenv/config";
-import router from "./routes";
+import { createApp } from "./app";
+import { PrismaCommentRepository } from "./services/db/PrismaCommentRepository";
+import { PrismaTicketRepository } from "./services/db/PrismaTicketRepository";
+import { PrismaUserRepository } from "./services/db/PrismaUserRepository";
+import { EmailService } from "./services/email/EmailService";
 
-const app = express();
-const port = Number(process.env.PORT || 3000);
-
-app.use(cors());
-app.use(express.json());
-app.use("/api", router);
-
-app.use((_request, response) => {
-  response.status(404).json({ message: "Rota nao encontrada" });
+const app = createApp({
+  userRepository: new PrismaUserRepository(),
+  ticketRepository: new PrismaTicketRepository(),
+  commentRepository: new PrismaCommentRepository(),
+  emailService: new EmailService(),
 });
 
+const port = Number(process.env.PORT || 3000);
+
 app.listen(port, () => {
-  console.log(`Oxetech Helpdesk API running on http://localhost:${port}`);
+  console.log(`Oxetech Helpdesk API running on http://localhost:${port}!!`);
 });
